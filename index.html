@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>UNDERSTORY — Round Tracker</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
+    :root {
+      --bg:          #0c0904;
+      --bg2:         #131009;
+      --surface:     #1b1610;
+      --surface2:    #221d14;
+      --border:      #2e2618;
+      --border-warm: #3d3220;
+      --text:        #d6bc96;
+      --text-dim:    #6b5c42;
+      --text-faint:  #3a3020;
+      --green:       #5a7d52;
+      --green-dim:   #3d5838;
+      --pine:        #b86a3a;
+      --pine-dim:    #7a3e20;
+      --blocked:     #8a7040;
+      --exhaust:     #a04040;
+      --ritual:      #7aaa72;
+      --ritual-dim:  #4a7045;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Libre Baskerville', Georgia, serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 128px 128px;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.6;
+    }
+
+    .app {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-family: 'IM Fell English', Georgia, serif;
+      font-size: 1.6rem;
+      font-weight: 400;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .subtitle {
+      font-size: 0.62rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 0.35rem;
+      font-style: italic;
+    }
+
+    .round-block {
+      text-align: center;
+      margin-bottom: 2.25rem;
+    }
+
+    .round-number {
+      font-family: 'IM Fell English', Georgia, serif;
+      font-size: 7.5rem;
+      font-weight: 400;
+      line-height: 1;
+      color: var(--text);
+      display: block;
+    }
+
+    .round-number.pine-round {
+      animation: pine-pulse 2.2s ease-in-out infinite;
+    }
+
+    @keyframes pine-pulse {
+      0%, 100% { color: var(--text); }
+      50%       { color: var(--pine); }
+    }
+
+    .round-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 0.15rem;
+    }
+
+    /* Pine banner */
+    .pine-banner {
+      background: rgba(184, 106, 58, 0.07);
+      border: 1px solid var(--pine-dim);
+      border-radius: 3px;
+      padding: 0.9rem 1rem;
+      margin-bottom: 0.75rem;
+      display: none;
+    }
+
+    .pine-banner.visible { display: block; }
+
+    .pine-banner-header {
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--pine);
+      margin-bottom: 0.7rem;
+    }
+
+    .pine-btns {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-pine {
+      flex: 1;
+      padding: 0.6rem 0.75rem;
+      border-radius: 2px;
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.15s;
+    }
+
+    .btn-pine-spread {
+      background: rgba(184, 106, 58, 0.1);
+      border-color: var(--pine);
+      color: var(--pine);
+    }
+
+    .btn-pine-spread:hover { background: rgba(184, 106, 58, 0.2); }
+
+    .btn-pine-blocked {
+      background: rgba(138, 112, 64, 0.08);
+      border-color: var(--blocked);
+      color: var(--blocked);
+    }
+
+    .btn-pine-blocked:hover { background: rgba(138, 112, 64, 0.18); }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Dice exhaustion */
+    .btn-exhaust {
+      width: 100%;
+      padding: 0.75rem;
+      background: rgba(160, 64, 64, 0.07);
+      border: 1px solid #5a2a2a;
+      color: var(--exhaust);
+      font-family: 'Libre Baskerville', serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: background 0.15s;
+    }
+
+    .btn-exhaust:hover { background: rgba(160, 64, 64, 0.15); }
+
+    .exhaust-count {
+      margin-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .exhaust-dots { display: flex; gap: 0.4rem; }
+
+    .exhaust-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1px solid var(--text-faint);
+      transition: all 0.3s;
+    }
+
+    .exhaust-dot.filled {
+      background: var(--exhaust);
+      border-color: var(--exhaust);
+    }
+
+    .exhaust-label {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    /* Pine status */
+    .pine-info-row {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .pine-stat { text-align: center; }
+
+    .pine-stat-val {
+      font-family: 'IM Fell English', Georgia, serif;
+      font-size: 2rem;
+      color: var(--text);
+      display: block;
+      line-height: 1;
+    }
+
+    .pine-stat-key {
+      font-size: 0.55rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+    }
+
+    .pine-divider {
+      width: 1px;
+      height: 36px;
+      background: var(--border);
+    }
+
+    .pine-pending {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    .pine-last {
+      margin-top: 0.65rem;
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      font-style: italic;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .pine-status-line {
+      margin-top: 0.85rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.7rem;
+      font-style: italic;
+      color: var(--text-dim);
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      .app { padding: 1.5rem 1rem 4rem; }
+      .round-number { font-size: 6rem; }
+      .btn-end-round { padding: 1.1rem; font-size: 1rem; }
+      .btn-exhaust { padding: 0.9rem; font-size: 0.75rem; }
+      .btn-pine { padding: 0.75rem; font-size: 0.72rem; }
+    }
+
+    /* End Round */
+    .btn-end-round {
+      width: 100%;
+      padding: 1rem;
+      background: var(--surface2);
+      border: 1px solid var(--green-dim);
+      color: var(--green);
+      font-family: 'IM Fell English', Georgia, serif;
+      font-size: 1.05rem;
+      letter-spacing: 0.25em;
+      cursor: pointer;
+      border-radius: 3px;
+      margin-bottom: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .btn-end-round:hover:not(:disabled) {
+      background: rgba(90, 125, 82, 0.09);
+      border-color: var(--green);
+    }
+
+    .btn-end-round:disabled {
+      opacity: 0.28;
+      cursor: not-allowed;
+      border-color: var(--border);
+      color: var(--text-dim);
+    }
+
+    /* Log */
+    .log-scroll {
+      max-height: 220px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .log-empty {
+      font-size: 0.7rem;
+      color: var(--text-faint);
+      font-style: italic;
+    }
+
+    .log-entry {
+      display: flex;
+      gap: 0.65rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem;
+      line-height: 1.45;
+    }
+
+    .log-entry:last-child { border-bottom: none; }
+
+    .log-r       { color: var(--text-faint); min-width: 2.2rem; flex-shrink: 0; }
+    .log-pine    { color: var(--pine); }
+    .log-blocked { color: var(--blocked); }
+    .log-exhaust { color: var(--exhaust); }
+
+    /* Ritual overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 3, 1, 0.97);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s;
+    }
+
+    .overlay.active { opacity: 1; pointer-events: all; }
+
+    .ritual-marks {
+      display: flex;
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    .ritual-mark {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--border-warm);
+      transform: scale(0.7);
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .ritual-mark.clapped {
+      background: var(--ritual);
+      transform: scale(1);
+    }
+
+    .ritual-line {
+      width: 36px;
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 2rem;
+    }
+
+    .ritual-text {
+      font-family: 'IM Fell English', Georgia, serif;
+      font-size: 1.1rem;
+      font-style: italic;
+      color: var(--ritual);
+      text-align: center;
+      max-width: 280px;
+      line-height: 2;
+      opacity: 0;
+      transition: opacity 0.8s 0.2s;
+    }
+
+    .ritual-text.visible { opacity: 1; }
+
+    .overlay-dismiss {
+      margin-top: 3rem;
+      font-size: 0.58rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .overlay-dismiss:hover { color: var(--text-dim); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .app > * { animation: fadeUp 0.45s ease both; }
+    .app > *:nth-child(1) { animation-delay: 0.05s; }
+    .app > *:nth-child(2) { animation-delay: 0.1s; }
+    .app > *:nth-child(3) { animation-delay: 0.15s; }
+    .app > *:nth-child(4) { animation-delay: 0.2s; }
+    .app > *:nth-child(5) { animation-delay: 0.25s; }
+    .app > *:nth-child(6) { animation-delay: 0.3s; }
+    .app > *:nth-child(7) { animation-delay: 0.35s; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <h1>Understory</h1>
+    <div class="subtitle">Grove Companion</div>
+  </header>
+
+  <div class="round-block">
+    <span class="round-number" id="roundNum">1</span>
+    <div class="round-label">Round</div>
+  </div>
+
+  <div class="pine-banner" id="pineBanner">
+    <div class="pine-banner-header">Pine is spreading — log this round before ending</div>
+    <div class="pine-btns">
+      <button class="btn-pine btn-pine-spread" onclick="logPine(true)">Pine spread</button>
+      <button class="btn-pine btn-pine-blocked" onclick="logPine(false)">No pine</button>
+    </div>
+  </div>
+
+  <button class="btn-end-round" id="endRoundBtn" onclick="endRound()">End Round</button>
+
+  <div class="card">
+    <div class="card-label">Dice</div>
+    <button class="btn-exhaust" onclick="logExhaustion()">A die has run out of moves</button>
+    <div class="exhaust-count">
+      <div class="exhaust-dots" id="exhaustDots"></div>
+      <div class="exhaust-label" id="exhaustLabel">No exhaustions yet</div>
+    </div>
+    <div class="pine-status-line" id="pineStatusLine">Pine encroachment begins at round 6.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Session Log</div>
+    <div class="log-scroll" id="logContainer">
+      <div class="log-empty">No events yet.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="ritual-marks">
+    <div class="ritual-mark" id="rm0"></div>
+    <div class="ritual-mark" id="rm1"></div>
+    <div class="ritual-mark" id="rm2"></div>
+  </div>
+  <div class="ritual-line"></div>
+  <div class="ritual-text" id="ritualText">
+    O grove, thank you for the water,<br>the bark, and the canopy.
+  </div>
+  <div class="overlay-dismiss" onclick="dismissOverlay()">tap to continue</div>
+</div>
+
+<script>
+  const state = {
+    round: 1,
+    exhaustions: 0,
+    nextPineRound: 6,
+    pineActive: false,    // true = pine is spreading round-by-round until "no pine"
+    pineLogged: true,     // must log pine before ending round when pineActive
+    lastPineResult: null,
+    lastPineRound: null,
+    log: []
+  };
+
+  function getInterval() {
+    if (state.exhaustions === 0) return 6;
+    if (state.exhaustions === 1) return 4;
+    return 2;
+  }
+
+  function addLog(text, type) {
+    state.log.unshift({ round: state.round, text, type });
+    renderLog();
+  }
+
+  function logExhaustion() {
+    state.exhaustions++;
+    const interval = getInterval();
+    addLog(
+      `Die exhausted. Pine interval now every ${interval} round${interval !== 1 ? 's' : ''}.`,
+      'exhaust'
+    );
+    if (!state.pineActive && state.round < state.nextPineRound) {
+      state.nextPineRound = state.round + interval;
+    }
+    render();
+  }
+
+  function logPine(spread) {
+    state.lastPineRound = state.round;
+    if (spread) {
+      // Pine spread — keep asking next round
+      state.pineActive = true;
+      state.pineLogged = true;
+      state.lastPineResult = 'spread';
+      addLog(`Pine spread (round ${state.round}).`, 'pine');
+    } else {
+      // No pine this round — stop asking, wait for next interval
+      state.pineActive = false;
+      state.pineLogged = true;
+      state.lastPineResult = 'no pine';
+      state.nextPineRound = state.round + getInterval();
+      addLog(`No pine this round (R${state.round}). Next check at R${state.nextPineRound}.`, 'blocked');
+    }
+    render();
+  }
+
+  function endRound() {
+    if (!state.pineLogged) return;
+    state.round++;
+
+    if (state.pineActive || (state.round >= 6 && state.round >= state.nextPineRound)) {
+      state.pineActive = true;
+      state.pineLogged = false;
+    } else {
+      state.pineLogged = true;
+    }
+    render();
+  }
+
+  function render() {
+    const roundEl = document.getElementById('roundNum');
+    roundEl.textContent = state.round;
+    roundEl.classList.toggle('pine-round', state.pineActive);
+
+    const dotsEl = document.getElementById('exhaustDots');
+    const total = Math.max(3, state.exhaustions + 1);
+    dotsEl.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+      const d = document.createElement('div');
+      d.className = 'exhaust-dot' + (i < state.exhaustions ? ' filled' : '');
+      dotsEl.appendChild(d);
+    }
+
+    const interval = getInterval();
+    const labelEl = document.getElementById('exhaustLabel');
+    labelEl.textContent = state.exhaustions === 0
+      ? 'No exhaustions yet'
+      : `${state.exhaustions} exhaustion${state.exhaustions > 1 ? 's' : ''} · pine every ${interval} rounds`;
+
+    const statusLine = document.getElementById('pineStatusLine');
+    if (!state.pineActive && state.round < 6) {
+      statusLine.textContent = 'Pine encroachment begins at round 6.';
+      statusLine.style.color = '';
+    } else if (state.pineActive) {
+      statusLine.textContent = 'Pine is actively spreading.';
+      statusLine.style.color = 'var(--pine)';
+    } else {
+      statusLine.textContent = `Next pine check: round ${state.nextPineRound}.`;
+      statusLine.style.color = '';
+    }
+
+    document.getElementById('pineBanner').classList.toggle('visible', state.pineActive);
+    document.getElementById('endRoundBtn').disabled = !state.pineLogged;
+  }
+
+  function renderLog() {
+    const c = document.getElementById('logContainer');
+    if (!state.log.length) {
+      c.innerHTML = '<div class="log-empty">No events yet.</div>';
+      return;
+    }
+    c.innerHTML = state.log.map(e =>
+      `<div class="log-entry">
+        <span class="log-r">R${e.round}</span>
+        <span class="log-${e.type}">${e.text}</span>
+      </div>`
+    ).join('');
+  }
+
+  let ritualTimer = null;
+
+  function showRitual() {
+    const overlay = document.getElementById('overlay');
+    const textEl = document.getElementById('ritualText');
+    overlay.classList.add('active');
+    textEl.classList.remove('visible');
+    for (let i = 0; i < 3; i++) document.getElementById('rm' + i).classList.remove('clapped');
+    let clap = 0;
+    function nextClap() {
+      if (clap < 3) {
+        document.getElementById('rm' + clap).classList.add('clapped');
+        clap++;
+        ritualTimer = setTimeout(nextClap, 650);
+      } else {
+        textEl.classList.add('visible');
+      }
+    }
+    setTimeout(nextClap, 300);
+  }
+
+  function dismissOverlay() {
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('ritualText').classList.remove('visible');
+    if (ritualTimer) clearTimeout(ritualTimer);
+  }
+
+  render();
+  renderLog();
+</script>
+</body>
+</html>
