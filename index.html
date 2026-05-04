@@ -510,10 +510,21 @@
     log: []
   };
 
+  const PINE_START = 6;
+
   function getInterval() {
     if (state.exhaustions === 0) return 6;
     if (state.exhaustions === 1) return 4;
     return 2;
+  }
+
+  // Always returns the next scheduled pine round on the fixed grid
+  // Grid: PINE_START, PINE_START + interval, PINE_START + 2*interval, ...
+  function nextGridRound(afterRound) {
+    const interval = getInterval();
+    if (afterRound < PINE_START) return PINE_START;
+    const n = Math.ceil((afterRound - PINE_START + 1) / interval);
+    return PINE_START + n * interval;
   }
 
   function addLog(text, type) {
@@ -528,8 +539,9 @@
       `Die exhausted. Pine interval now every ${interval} round${interval !== 1 ? 's' : ''}.`,
       'exhaust'
     );
-    if (!state.pineActive && state.round < state.nextPineRound) {
-      state.nextPineRound = state.round + interval;
+    // Recalculate next pine round on the new grid if pine isn't actively spreading
+    if (!state.pineActive) {
+      state.nextPineRound = nextGridRound(state.round);
     }
     render();
   }
@@ -537,17 +549,15 @@
   function logPine(spread) {
     state.lastPineRound = state.round;
     if (spread) {
-      // Pine spread — keep asking next round
       state.pineActive = true;
       state.pineLogged = true;
       state.lastPineResult = 'spread';
       addLog(`Pine spread (round ${state.round}).`, 'pine');
     } else {
-      // No pine this round — stop asking, wait for next interval
       state.pineActive = false;
       state.pineLogged = true;
       state.lastPineResult = 'no pine';
-      state.nextPineRound = state.round + getInterval();
+      state.nextPineRound = nextGridRound(state.round);
       addLog(`No pine this round (R${state.round}). Next check at R${state.nextPineRound}.`, 'blocked');
     }
     render();
@@ -556,8 +566,7 @@
   function endRound() {
     if (!state.pineLogged) return;
     state.round++;
-
-    if (state.pineActive || (state.round >= 6 && state.round >= state.nextPineRound)) {
+    if (state.pineActive || (state.round >= PINE_START && state.round >= state.nextPineRound)) {
       state.pineActive = true;
       state.pineLogged = false;
     } else {
